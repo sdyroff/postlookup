@@ -8,23 +8,23 @@ from pynetstring import decode, encode
 from dns import resolver
 from email_split import email_split
 
+
 async def handle_echo(reader, writer):
     # postfix accepts only 100000 in a reply we can do the same
     data = await reader.read(100000)
     raw_query = decode(data)
     if len(raw_query) != 1:
-        result = 'PERM Got not exactly one query'
+        result = "PERM Got not exactly one query"
     else:
-        addr = writer.get_extra_info('peername')
+        addr = writer.get_extra_info("peername")
         query = raw_query[0][4:].decode().strip()
         print(f"Received {query!r} from {addr!r}")
 
         email = email_split(query)
 
-        mxs = sorted(resolver.query(email.domain, 'MX'), key=lambda x: x.preference)
+        mxs = sorted(resolver.query(email.domain, "MX"), key=lambda x: x.preference)
         lowest_prio_mx = mxs[0].exchange.to_text()
-        result = f'OK [{lowest_prio_mx}]'
-
+        result = f"OK [{lowest_prio_mx}]"
 
     writer.write(encode(result))
     await writer.drain()
@@ -32,14 +32,15 @@ async def handle_echo(reader, writer):
     print("Close the connection")
     writer.close()
 
+
 async def main():
-    server = await asyncio.start_server(
-        handle_echo, '127.0.0.1', 8888)
+    server = await asyncio.start_server(handle_echo, "127.0.0.1", 8888)
 
     addr = server.sockets[0].getsockname()
-    print(f'Serving on {addr}')
+    print(f"Serving on {addr}")
 
     async with server:
         await server.serve_forever()
+
 
 asyncio.run(main())
