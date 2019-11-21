@@ -14,5 +14,4 @@ TODO
     * dns.resolver.NoAnswer: The DNS response does not contain an answer to the question: s.goodpoint.de. IN MX
 * asyncio -> threadpool
 * parse domain patterns from a file
-* publish to github/repo
 * systemd unit
