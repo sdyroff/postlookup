@@ -7,6 +7,7 @@ from pynetstring import decode, encode
 from dns import resolver
 from email_split import email_split
 import socket
+import threading
 import socketserver
 
 
@@ -24,7 +25,9 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
 
                 email = email_split(query)
 
-                mxs = sorted(resolver.query(email.domain, "MX"), key=lambda x: x.preference)
+                mxs = sorted(
+                    resolver.query(email.domain, "MX"), key=lambda x: x.preference
+                )
                 lowest_prio_mx = mxs[0].exchange.to_text()
                 result = f"OK [{lowest_prio_mx}]"
 
@@ -36,7 +39,9 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
             self.request.close()
 
 
-class ThreadedUnixStreamServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
+class ThreadedUnixStreamServer(
+    socketserver.ThreadingMixIn, socketserver.UnixStreamServer
+):
     pass
 
 
