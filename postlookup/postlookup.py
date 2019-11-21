@@ -7,8 +7,9 @@ from pynetstring import decode, encode
 from dns import resolver
 from email_split import email_split
 import socket
-import threading
 import socketserver
+import configparser
+import os
 
 
 class PostlookupRequestHandler(socketserver.BaseRequestHandler):
@@ -45,8 +46,22 @@ class ThreadedUnixStreamServer(
     pass
 
 
+def openconfig(files=["/etc/postlookup", os.path.expanduser("~/.postlookup")]):
+    config = configparser.ConfigParser()
+    for conffile in files:
+        try:
+            with open(conffile, "r", encoding="utf-8") as cf:
+                config.read_file(cf)
+                print(f"reading config from {conffile}")
+                return config
+        except Exception:
+            pass
+    raise Exception("Could not find a config file")
+
+
 def main():
-    path = "test.sock"
+    config = openconfig()
+    path = config["general"].get("socket")
 
     server = ThreadedUnixStreamServer(path, PostlookupRequestHandler)
     with server:
