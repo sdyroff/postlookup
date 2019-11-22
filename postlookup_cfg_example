@@ -1,0 +1,11 @@
+[general]
+socket=test.sock
+
+[gmail]
+pattern=google.com$
+relay=[127.0.0.1]:25
+
+
+[goodpoint]
+pattern=^mail.goodpoint.de$
+relay=[testhost]:25

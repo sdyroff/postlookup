@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-# The socketmap protocol:
-#   http://www.postfix.org/socketmap_table.5.html
-
-from pynetstring import decode, encode
+from pynetstring import Decoder, encode
 from dns import resolver
 from email_split import email_split
 import socket
@@ -14,10 +11,14 @@ import os
 
 class PostlookupRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
+        decoder = Decoder()
+        raw_query = []
         try:
-            # postfix accepts only 100000 in a reply we can do the same
-            data = self.request.recv(10000)
-            raw_query = decode(data)
+            while not raw_query:
+                data = self.request.recv(4096)
+                part = decoder.feed(data)
+                if part:
+                    raw_query = raw_query + part
             if len(raw_query) != 1:
                 result = "PERM Got not exactly one query"
             else:
