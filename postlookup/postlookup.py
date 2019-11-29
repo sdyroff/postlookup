@@ -7,6 +7,9 @@ import socket
 import socketserver
 import configparser
 import os
+import re
+
+rules = []
 
 
 class PostlookupRequestHandler(socketserver.BaseRequestHandler):
@@ -47,6 +50,19 @@ class ThreadedUnixStreamServer(
     pass
 
 
+class ForwardRule:
+    def __init__(self, name, entry):
+        self.name = name
+        self.relay = entry["relay"]
+        self.pattern = re.compile(entry["pattern"])
+
+    def __str__(self):
+        return f"{self.name} ({self.pattern} -> {self.relay})"
+
+    def __repr__(self):
+        return f"ForwardRule({str(self)})"
+
+
 def openconfig(files=["/etc/postlookup", os.path.expanduser("~/.postlookup")]):
     config = configparser.ConfigParser()
     for conffile in files:
@@ -61,8 +77,15 @@ def openconfig(files=["/etc/postlookup", os.path.expanduser("~/.postlookup")]):
 
 
 def main():
+    global rules
     config = openconfig()
     path = config["general"].get("socket")
+
+    rules = [
+        ForwardRule(section, config[section])
+        for section in config.sections()
+        if not section == "general"
+    ]
 
     server = ThreadedUnixStreamServer(path, PostlookupRequestHandler)
     with server:
