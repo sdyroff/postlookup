@@ -12,6 +12,12 @@ import re
 rules = []
 
 
+def findDnsNextHop(address):
+    email = email_split(address)
+    mxs = sorted(resolver.query(email.domain, "MX"), key=lambda x: x.preference)
+    return mxs[0].exchange.to_text()
+
+
 class PostlookupRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
         decoder = Decoder()
@@ -28,15 +34,18 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
                 query = raw_query[0][4:].decode().strip()
                 print(f"Received {query!r}")
 
-                email = email_split(query)
+                nextHop = findDnsNextHop(query)
+                if not nextHop:
+                    self.request.sendall(encode("NOTFOUND"))
+                    return
 
-                mxs = sorted(
-                    resolver.query(email.domain, "MX"), key=lambda x: x.preference
-                )
-                lowest_prio_mx = mxs[0].exchange.to_text()
-                result = f"OK [{lowest_prio_mx}]"
+                result = "NOTFOUND"
 
-            self.request.sendall(encode(result))
+                for rule in rules:
+                    if rule.match(nextHop):
+                        result = f"OK {rule.relay}"
+
+                self.request.sendall(encode(result))
         except Exception as e:
             print("Error during lookup: " + str(e))
             self.request.sendall(encode("NOTFOUND"))
@@ -55,6 +64,9 @@ class ForwardRule:
         self.name = name
         self.relay = entry["relay"]
         self.pattern = re.compile(entry["pattern"])
+
+    def match(self, mx):
+        return self.pattern.match(mx)
 
     def __str__(self):
         return f"{self.name} ({self.pattern} -> {self.relay})"
