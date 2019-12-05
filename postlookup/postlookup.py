@@ -9,8 +9,6 @@ import configparser
 import os
 import re
 
-rules = []
-
 
 def findDnsNextHop(address):
     email = email_split(address)
@@ -41,7 +39,7 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
 
                 result = "NOTFOUND"
 
-                for rule in rules:
+                for rule in self.server.rules:
                     if rule.match(nextHop):
                         result = f"OK {rule.relay}"
 
@@ -56,7 +54,9 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
 class ThreadedUnixStreamServer(
     socketserver.ThreadingMixIn, socketserver.UnixStreamServer
 ):
-    pass
+    def __init__(self, path, handlercls, rules):
+        super().__init__(path, handlercls)
+        self.rules = rules
 
 
 class ForwardRule:
@@ -89,7 +89,6 @@ def openconfig(files=["/etc/postlookup", os.path.expanduser("~/.postlookup")]):
 
 
 def main():
-    global rules
     config = openconfig()
     path = config["general"].get("socket")
 
@@ -99,7 +98,7 @@ def main():
         if not section == "general"
     ]
 
-    server = ThreadedUnixStreamServer(path, PostlookupRequestHandler)
+    server = ThreadedUnixStreamServer(path, PostlookupRequestHandler, rules)
     with server:
         server.serve_forever()
 
