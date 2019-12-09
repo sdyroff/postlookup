@@ -1,15 +1,16 @@
 from pynetstring import decode, encode
 from postlookup import postlookup
+import os
 import threading
 import random
 import socket
 
 
-def start_server():
+def start_server(rules):
     rand = random.randint(1000, 9999)
     path = f"/tmp/postlookup-{str(rand)}.sock"
     server = postlookup.ThreadedUnixStreamServer(
-        path, postlookup.PostlookupRequestHandler
+        path, postlookup.PostlookupRequestHandler, rules
     )
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
@@ -25,11 +26,44 @@ def client(s, message):
         return response
 
 
-def test_postlookup():
-    sock, server = start_server()
-    res = decode(client(sock, encode("name test@gmail.com")))
+def test_postlookup_positive_match():
+    rules = [
+        postlookup.ForwardRule(
+            "google forward", {"relay": "[testhost]:25", "pattern": "^.*google.com\.$"}
+        )
+    ]
+    sock, server = start_server(rules)
+    res = decode(client(sock, encode("test@gmail.com")))
     server.shutdown()
     assert len(res) == 1
     s = res[0].decode("utf-8")
     assert s.startswith("OK")
-    assert "google.com" in s
+    assert "[testhost]:25" in s
+
+
+def test_postlookup_no_match():
+    rules = [
+        postlookup.ForwardRule(
+            "google forward", {"relay": "[testhost]:25", "pattern": "^.*google.com\.$"}
+        )
+    ]
+    sock, server = start_server(rules)
+    res = decode(client(sock, encode("test@example.com")))
+    server.shutdown()
+    assert len(res) == 1
+    s = res[0].decode("utf-8")
+    assert s.startswith("NOTFOUND")
+
+
+def test_postlookup_no_mx():
+    rules = [
+        postlookup.ForwardRule(
+            "google forward", {"relay": "[testhost]:25", "pattern": "^.*google.com\.$"}
+        )
+    ]
+    sock, server = start_server(rules)
+    res = decode(client(sock, encode("test@test.test.example.com")))
+    server.shutdown()
+    assert len(res) == 1
+    s = res[0].decode("utf-8")
+    assert s.startswith("NOTFOUND")

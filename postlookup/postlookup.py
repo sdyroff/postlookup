@@ -12,6 +12,8 @@ import re
 
 def findDnsNextHop(address):
     email = email_split(address)
+    if not email.domain:
+        raise ValueError("Empty domain does not contain an MX")
     mxs = sorted(resolver.query(email.domain, "MX"), key=lambda x: x.preference)
     return mxs[0].exchange.to_text()
 
@@ -33,9 +35,7 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
                 print(f"Received {query!r}")
 
                 nextHop = findDnsNextHop(query)
-                if not nextHop:
-                    self.request.sendall(encode("NOTFOUND"))
-                    return
+                self.request.sendall(encode("NOTFOUND"))
 
                 result = "NOTFOUND"
 
