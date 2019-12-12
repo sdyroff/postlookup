@@ -33,7 +33,7 @@ def test_postlookup_positive_match():
         )
     ]
     sock, server = start_server(rules)
-    res = decode(client(sock, encode("test@gmail.com")))
+    res = decode(client(sock, encode("mx test@gmail.com")))
     server.shutdown()
     assert len(res) == 1
     s = res[0].decode("utf-8")
@@ -48,7 +48,7 @@ def test_postlookup_no_match():
         )
     ]
     sock, server = start_server(rules)
-    res = decode(client(sock, encode("test@example.com")))
+    res = decode(client(sock, encode("mx test@example.com")))
     server.shutdown()
     assert len(res) == 1
     s = res[0].decode("utf-8")
@@ -62,7 +62,7 @@ def test_postlookup_no_mx():
         )
     ]
     sock, server = start_server(rules)
-    res = decode(client(sock, encode("test@test.test.example.com")))
+    res = decode(client(sock, encode("mx test@test.test.example.com")))
     server.shutdown()
     assert len(res) == 1
     s = res[0].decode("utf-8")

@@ -31,17 +31,21 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
             if len(raw_query) != 1:
                 result = "PERM Got not exactly one query"
             else:
-                query = raw_query[0][4:].decode().strip()
+                filtername = raw_query[0].split()[0]
+                if filtername.decode() != "mx":
+                    raise ValueError(f"Got unknown name {filtername}")
+
+                query = raw_query[0][2:].decode().strip()
                 print(f"Received {query!r}")
 
                 nextHop = findDnsNextHop(query)
-                self.request.sendall(encode("NOTFOUND"))
 
                 result = "NOTFOUND"
 
                 for rule in self.server.rules:
                     if rule.match(nextHop):
                         result = f"OK {rule.relay}"
+                        break
 
                 self.request.sendall(encode(result))
         except Exception as e:
