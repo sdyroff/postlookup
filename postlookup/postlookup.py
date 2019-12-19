@@ -8,6 +8,7 @@ import socketserver
 import configparser
 import os
 import re
+import logging
 
 
 def findDnsNextHop(address):
@@ -36,7 +37,7 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
                     raise ValueError(f"Got unknown name {filtername}")
 
                 query = raw_query[0][2:].decode().strip()
-                print(f"Received {query!r}")
+                logging.info(f"Received {query!r}")
 
                 nextHop = findDnsNextHop(query)
 
@@ -49,7 +50,7 @@ class PostlookupRequestHandler(socketserver.BaseRequestHandler):
 
                 self.request.sendall(encode(result))
         except Exception as e:
-            print("Error during lookup: " + str(e))
+            logging.error("Error during lookup: " + str(e), exc_info=True)
             self.request.sendall(encode("NOTFOUND"))
         finally:
             self.request.close()
@@ -85,7 +86,7 @@ def openconfig(files=["/etc/postlookup", os.path.expanduser("~/.postlookup")]):
         try:
             with open(conffile, "r", encoding="utf-8") as cf:
                 config.read_file(cf)
-                print(f"reading config from {conffile}")
+                logging.info(f"reading config from {conffile}")
                 return config
         except Exception:
             pass
@@ -93,6 +94,7 @@ def openconfig(files=["/etc/postlookup", os.path.expanduser("~/.postlookup")]):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     config = openconfig()
     path = config["general"].get("socket")
 
