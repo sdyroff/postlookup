@@ -2,7 +2,6 @@
 
 from pynetstring import Decoder, encode
 from dns import resolver
-from email_split import email_split
 import socket
 import socketserver
 import configparser
@@ -12,10 +11,10 @@ import logging
 
 
 def findDnsNextHop(address):
-    email = email_split(address)
-    if not email.domain:
+    localpart, at, domain = address.partition("@")
+    if not domain:
         raise ValueError("Empty domain does not contain an MX")
-    mxs = sorted(resolver.query(email.domain, "MX"), key=lambda x: x.preference)
+    mxs = sorted(resolver.query(domain, "MX"), key=lambda x: x.preference)
     return mxs[0].exchange.to_text()
 
 
