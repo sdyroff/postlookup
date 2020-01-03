@@ -20,4 +20,5 @@ setup(
     license=license,
     packages=find_packages(exclude=("tests", "docs")),
     entry_points={"console_scripts": ["postlookup = postlookup.postlookup:main"]},
+    install_requires=["dnspython", "pynetstring"],
 )
